@@ -22,22 +22,14 @@ func main() {
 	}
 	//init the mutex
 	store.RWMutex = &sync.RWMutex{}
-	//filling the map
+	//filling the map db
 	for _, album := range albums {
 		store.M[album.ID] = album
 	}
 
 	/** init http request multiplexer
 	* in dictionary:
-	* Multiplexer. A device that enables the simultaneous
-	* transmission of several messages or signals over 
-	* one communications channel.
-	*
-	* 
-	* in GO:
-	* 	In go ServeMux is an HTTP request multiplexer.
-	* 	It matches the URL of each incoming request against a list of
-	* 	registered patterns and calls the handler
+	* Multiplexer. A device that enables the simu
 	* 	for the pattern that most closely matches the URL.
 	*
 		type ServeMux struct {

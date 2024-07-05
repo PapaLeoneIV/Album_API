@@ -1,5 +1,6 @@
 package handlers
 
+
 import (
 	"api_mux/regex"
 	"api_mux/types"
@@ -10,6 +11,56 @@ import (
 
 type AlbumHandler struct {
 	Store *album_db.Db
+}
+
+func (h *AlbumHandler) Update(w http.ResponseWriter, req *http.Request){
+	matches := regxp.GetAlbumRe.FindStringSubmatch(req.URL.Path)
+	if len(matches) < 2 {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not found"))
+		return
+	}
+	var buf types.Album
+	if err := json.NewDecoder(req.Body).Decode(&buf); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal server error"))
+		return
+	}
+
+
+	h.Store.Lock()
+	defer h.Store.Unlock()
+
+	if _, exist := h.Store.M[matches[1]]; !exist {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Album not found!"))
+		return
+	}
+
+	h.Store.M[matches[1]] = buf
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *AlbumHandler) Delete(w http.ResponseWriter, req *http.Request){
+	matches := regxp.GetAlbumRe.FindStringSubmatch(req.URL.Path)
+	if len(matches) < 2 {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not found"))
+		return
+	}
+	h.Store.Lock()
+	
+	if _, exist := h.Store.M[matches[1]]; !exist {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Album not found!\n"))
+		return
+	}
+	
+	delete(h.Store.M, matches[1])
+	h.Store.Unlock()
+	
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Deletion was successfull!"))
 }
 
 func (h *AlbumHandler) List(w http.ResponseWriter, req *http.Request) {
@@ -83,6 +134,10 @@ func (h *AlbumHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		h.List(w, req)
 	case req.Method == "POST" && regxp.CreateAlbumRe.MatchString(req.URL.Path):
 		h.Add(w, req)
+	case req.Method == "DELETE" && regxp.DeleteAlbumRe.MatchString(req.URL.Path):
+		h.Delete(w, req)
+	case req.Method == "PUT" && regxp.UpdateAlbumre.MatchString(req.URL.Path):
+		h.Update(w, req)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("not found"))
